@@ -1,3 +1,3 @@
 # TradingInPython
-Python 学习项目文件
-学习过程记录
+量化交易的相关策略及结果
+
