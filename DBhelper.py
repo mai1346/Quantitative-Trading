@@ -11,7 +11,7 @@ import tushare as ts
 import pandas as pd
 
 
-def connect(username,password,host,db):
+def connect(**login):
     """connect to a database use information provided
     args:
         username: MySQL username
@@ -21,8 +21,8 @@ def connect(username,password,host,db):
     return:
         a sqlalchemy engine connection
     """
-    engine=sqla.create_engine('mysql://%s:%s@%s/%s?charset=utf8mb4' % 
-                             (username,password,host,db))
+    engine=sqla.create_engine('mysql://%s:%s@%s/%s?charset=utf8' % 
+                             (login['username'],login['password'],login['host'],login['db']))
     return engine
 #
 def obtain_and_insert_hs300(con):
@@ -34,7 +34,8 @@ def obtain_and_insert_hs300(con):
     """
     # Get hs300 from tushare
     hs300=ts.get_hs300s()
-
+    hs300['date']=pd.to_datetime(hs300['date'])
+    hs300.set_index('date',inplace=True)
     # write it to MySQl database named 'cnstock'
 
     hs300.to_sql('hs300',con, if_exists='replace') #dtype={'date':sqla.types.VARCHAR(12)}
@@ -61,10 +62,10 @@ def obtain_daily_data(con,table,stocks,start='2009-01-01',\
     num=1 #for progress display use 
     for s in stocks:
         daily=ts.get_k_data(str(s),start=start,end=end)
-        daily.to_sql(str(table),con,if_exists='append',dtype={'date':sqla.types.VARCHAR(12)})
+        daily.to_sql(str(table),con,if_exists='append')
         # show adding progress
-        print 'Stock:%s added to database, progress: %d/%d %4.2f%% complete.' \
-        % (s,num,len(stocks),float(num)*100/len(stocks))
+        print ('Stock:%s added to database, progress: %d/%d %4.2f%% complete.' \
+        % (s,num,len(stocks),float(num)*100/len(stocks)))
         num+=1
 #        if num==50:
 #            break
@@ -92,10 +93,14 @@ def clean_data(con,openT='open',closeT='close'):
     newopen.to_sql(str(openT),con,if_exists='replace')
     newclose.to_sql(str(closeT),con,if_exists='replace')
 
+
+#%%
 if __name__ =='__main__':
-    engine =connect('mai1346','87566766','127.0.0.1:3306','cnstock')
+    login ={'username':'stockuser','password':'87566766','host':'localhost','db':'cnstock'}
+    engine =connect(**login)
     obtain_and_insert_hs300(engine)
-    clean_data(engine)
-#    codes=pd.read_sql('select code from cnstock.hs300',engine)['code']
-#    obtain_daily_data(engine,'rawdata',codes)
+   # codes=pd.read_sql('select code from cnstock.hs300',engine)['code']
+   # obtain_daily_data(engine,'rawdata',codes)
+   # clean_data(engine)
+    
     
